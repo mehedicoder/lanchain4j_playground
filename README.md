@@ -1,107 +1,105 @@
-Langchain4j and LLM powered RAG applications!
+# TextSummarizer
 
+> **Part of the LangChain4j and LLM-powered RAG applications suite.**
 
-TextSummarizer (applicable to other console application's code pushed here!) 
+TextSummarizer is a Java-based, multithreaded tool that leverages **LangChain4j** and Large Language Models (LLMs) to process and summarize text files. Designed for both laboratory experimentation and production environments, it features robust error handling, benchmarking, and multi-language support.
 
-TextSummarizer is a Java-based, multithreaded tool that uses LangChain4J and LLMs to summarize text files. It supports multiple summarization levels and languages, is benchmark-enabled, and designed for production use.
+---
 
-Features
+## 🚀 Features
 
-Multi-level summarization: extractive, thematic, executive, analytical, and more
+* **Multi-level Summarization:** Supports various depths including extractive, thematic, executive, analytical, and more.
+* **High Performance:** Multithreaded architecture for concurrent summarization of multiple files.
+* **Global Reach:** Generate summaries in any target language (English, German, Italian, etc.).
+* **Benchmarking:** Built-in execution time tracking for performance analysis.
+* **Production-Ready:** Uses environment-based API keys and failsafe error handling.
 
-Multithreaded for concurrent summarization requests
+---
 
-Summaries in any language
+## 🛠 Requirements
 
-Benchmarking execution time for each summary
+* **Java:** 17+
+* **Build Tool:** Gradle 7+
+* **API Access:** Groq API Key (Recommended for speed and regional availability in the EU).
+* **IDE:** IntelliJ IDEA (preferred) or any Java-compliant IDE.
 
-Production-ready: environment-based API keys, robust error handling
+---
 
-Requirements
+## ⚙️ Setup
 
-Java 17+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/mehedicoder/lanchain4j_playground
+    cd TextSummarizer
+    ```
 
-Gradle 7+
+2.  **Set your API key as an environment variable:**
+    * **Linux/macOS:**
+        ```bash
+        export GROQ_API_KEY="your-api-key-here"
+        ```
+    * **Windows:**
+        ```bash
+        setx GROQ_API_KEY "your-api-key-here"
+        ```
 
-API Key for your LLM provider (e.g., Groq API)
+3.  **Add your documents:**
+    Place the `.txt` files you wish to summarize in:
+    `src/main/resources/`
 
-IntelliJ IDEA or any IDE with Gradle support
+---
 
-Setup
+## 💻 Running the Application
 
-Clone the repository
+### Via IntelliJ IDEA
+1.  Open IntelliJ and select **Open** → point to the project root.
+2.  Allow IntelliJ to import the **Gradle** project.
+3.  Go to `Run/Debug Configurations` and add the `GROQ_API_KEY` to the **Environment Variables** field.
+4.  Run `TextSummarizer.java`.
 
-git clone <your-repo-url>
-cd TextSummarizer
+### Via Command Line
+1.  **Build the project:**
+    ```bash
+    ./gradlew build
+    ```
+2.  **Run the project:**
+    ```bash
+    ./gradlew run
+    ```
 
+### Interactive Prompts
+When prompted in the console, enter your details:
+* **File>** `example.txt`
+* **Level>** `executive`
+* **Language>** `English`
 
-Set your API key as an environment variable
+---
 
-export GROK_API_KEY=<your-api-key>      # Linux/macOS
-setx GROK_API_KEY "<your-api-key>"      # Windows
+## 📊 Supported Summarization Levels
 
+| Level | Description |
+| :--- | :--- |
+| **Extractive** | Verbatim selection of key sentences. |
+| **Compressed** | Concise version of the main ideas. |
+| **Abstractive** | Paraphrased and reformulated content. |
+| **Thematic** | Focuses on conceptual themes and motifs. |
+| **Analytical** | Interpretive breakdown of the text's logic. |
+| **Executive** | Decision-oriented summary for leadership. |
 
-Place text files to summarize in:
+---
 
-src/main/resources/
+## 📝 Technical Notes
 
-Running in IntelliJ
+* **File Location:** All input files must reside in `src/main/resources/`.
+* **Concurrency:** To adjust the processing power, modify the thread pool in `TextSummarizer.java`:
+    ```java
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(
+        Runtime.getRuntime().availableProcessors()
+    );
+    ```
 
-Open IntelliJ IDEA and select Open → point to the project root.
+---
 
-Let IntelliJ import the Gradle project.
+## 📄 License
 
-Ensure your GROK_API_KEY environment variable is set in Run/Debug Configurations.
-
-Run TextSummarizer.java.
-
-Enter:
-
-File> → file name (e.g., example.txt)
-
-Level> → summarization level (e.g., executive)
-
-Language> → output language (e.g., English)
-
-Running from Command Line
-
-Build the project:
-
-./gradlew build
-
-
-Run the project:
-
-./gradlew run
-
-
-Input prompts interactively:
-
-File> example.txt
-Level> executive
-Language> English
-
-
-The summary and execution time will print in the console.
-
-Supported Summarization Levels
-
-Basic: extractive, compressed, abstractive, thematic, analytical, executive, ultra-brief, structured, audience-specific, comparative
-
-Explicit variants: extractive (verbatim), compressed (concise), abstractive (paraphrased), thematic (conceptual), analytical (interpretive), executive (decision-oriented)
-
-Notes
-
-All input files must be in src/main/resources/.
-
-Multithreaded execution allows multiple summarization requests to run concurrently.
-
-For large-scale summarization, adjust the thread pool in TextSummarizer.java:
-
-private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(
-Runtime.getRuntime().availableProcessors()
-);
-
-License
-
-MIT License – feel free to use and modify for your own projects.
+This project is licensed under the **MIT License** – feel free to use and modify it for your own personal or commercial projects.
