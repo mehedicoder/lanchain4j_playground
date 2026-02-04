@@ -81,7 +81,37 @@ public class TextSummarizer {
      * and language.
      *
      * @param fileName     The name of the file to summarize.
-     * @param summaryLevel The summarization level (e.g., extractive, thematic).
+     *
+     * @param summaryLevel The summarization level. Supported levels include:
+     *
+     * <p><b>Basic Levels:</b>
+     * <ul>
+     *   <li>extractive – keeps the original wording, selects key sentences</li>
+     *   <li>compressed – shortened version, maintains original language</li>
+     *   <li>abstractive – paraphrased summary in own words</li>
+     *   <li>thematic – focuses on core themes and concepts</li>
+     *   <li>analytical – interprets and explains underlying meaning</li>
+     *   <li>executive – high-level, decision-oriented summary</li>
+     *   <li>ultra-brief – one-liner or extremely concise version</li>
+     *   <li>structured – organized format, bullet points, or sections</li>
+     *   <li>audience-specific – tailored to a particular audience or role</li>
+     *   <li>comparative – compares multiple ideas or viewpoints</li>
+     * </ul>
+     *
+     * <p><b>Explicit Variants (to guide LLM more accurately):</b>
+     * <ul>
+     *   <li>extractive (verbatim)</li>
+     *   <li>compressed (concise)</li>
+     *   <li>abstractive (paraphrased)</li>
+     *   <li>thematic (conceptual)</li>
+     *   <li>analytical (interpretive)</li>
+     *   <li>executive (decision-oriented)</li>
+     * </ul>
+     *
+     * <p>Choose the level based on your use case: readability, decision-making, report generation,
+     * or thematic analysis.
+     *
+
      * @param language     The language for the summary.
      * @return A fully populated prompt string ready for the LLM.
      * @throws IOException If the file cannot be read.
