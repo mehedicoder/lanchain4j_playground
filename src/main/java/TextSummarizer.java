@@ -33,7 +33,7 @@ public class TextSummarizer {
         SystemMessage systemMessage = SystemMessage.from("You are an expert text summarizer.");
 
         ChatModel chatModel = OpenAiChatModel.builder()
-                .apiKey(System.getenv("GROK_API_KEY"))
+                .apiKey(System.getenv("GROQ_API_KEY"))
                 .baseUrl("https://api.groq.com/openai/v1")
                 .modelName("llama-3.3-70b-versatile")
                 .build();
