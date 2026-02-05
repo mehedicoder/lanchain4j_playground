@@ -31,27 +31,40 @@ class TextSummarizerTest {
 
     @Test
     void testGeneratePromptLogic() throws Exception {
-        // Prepare a dummy file in the temp directory
+        // 1. Create the EXACT sub-directories the code is looking for: src/main/resources
+        Path resourceDir = tempDir.resolve("src").resolve("main").resolve("resources");
+        Files.createDirectories(resourceDir);
+
+        // 2. Write the file inside that specific nested folder
         String fileName = "test_something.txt";
         String content = "Music has existed since the dawn of time.";
-        Files.writeString(tempDir.resolve(fileName), content);
+        Path file = resourceDir.resolve(fileName);
+        Files.writeString(file, content);
 
-        // Access the private generatePrompt method via reflection for testing
-        Method generatePromptMethod = TextSummarizer.class.getDeclaredMethod(
-                "generatePrompt", String.class, String.class, String.class);
-        generatePromptMethod.setAccessible(true);
+        // 3. Point the JVM's "working directory" to our tempDir
+        String originalUserDir = System.getProperty("user.dir");
+        System.setProperty("user.dir", tempDir.toAbsolutePath().toString());
 
-        // Invoke the method
-        String result = (String) generatePromptMethod.invoke(null, fileName, "executive", "English");
+        try {
+            Method generatePromptMethod = TextSummarizer.class.getDeclaredMethod(
+                    "generatePrompt", String.class, String.class, String.class);
+            generatePromptMethod.setAccessible(true);
 
-        assertThat(result).contains("executive");
-        assertThat(result).contains("English");
-        assertThat(result).contains(content);
+            // 4. Pass ONLY the filename.
+            // The code will prepend "src/main/resources/" and find it in tempDir
+            String result = (String) generatePromptMethod.invoke(null, fileName, "executive", "English");
+
+            assertThat(result).contains("executive");
+            assertThat(result).contains("English");
+            assertThat(result).contains(content);
+        } finally {
+            // 5. Cleanup the system property so other tests don't break
+            System.setProperty("user.dir", originalUserDir);
+        }
     }
 
     @Test
     void testModelChatInteraction() {
-        // Prepare a mock response
         String expectedSummary = "This is a summarized version of the text.";
         ChatResponse mockResponse = ChatResponse.builder()
                 .aiMessage(AiMessage.from(expectedSummary))
@@ -59,24 +72,22 @@ class TextSummarizerTest {
 
         when(mockChatModel.chat(anyList())).thenReturn(mockResponse);
 
-        // Test the interaction
-        ChatResponse response = mockChatModel.chat(List.of()); // Simulated call
+        ChatResponse response = mockChatModel.chat(List.of());
 
         assertThat(response.aiMessage().text()).isEqualTo(expectedSummary);
     }
 
     @Test
     void testFileErrorHandling() {
-        // Test that prompt generation fails gracefully if file is missing
         Method generatePromptMethod;
         try {
             generatePromptMethod = TextSummarizer.class.getDeclaredMethod(
                     "generatePrompt", String.class, String.class, String.class);
             generatePromptMethod.setAccessible(true);
 
-            // Should throw an InvocationTargetException wrapping a NoSuchFileException
             assertThrows(Exception.class, () -> {
-                generatePromptMethod.invoke(null, "non_existent.txt", "basic", "French");
+                // Pass a name that definitely doesn't exist in that hardcoded path
+                generatePromptMethod.invoke(null, "non_existent_file_123.txt", "basic", "French");
             });
         } catch (NoSuchMethodException e) {
             fail("Method not found");
