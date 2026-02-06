@@ -73,6 +73,12 @@ public class TextSummarizer {
                     System.err.println("Error during summarization: " + e.getMessage());
                 }
             });
+
+            try {
+                EXECUTOR.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
