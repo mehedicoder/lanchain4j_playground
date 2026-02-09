@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,67 +20,114 @@ class TextSimilarityRankerIntegrationTest {
     @TempDir
     Path tempDir;
 
-    @Test
-    @DisplayName("Should read files from disk and rank them correctly based on similarity")
-    void shouldReadFilesAndRankSimilarities() throws IOException {
-        // 1. Setup: Create physical test files in the temp directory
-        Path file1 = tempDir.resolve("cooking.txt");
-        Files.write(file1, List.of("I love baking bread", "Cooking is my passion"));
-
-        Path file2 = tempDir.resolve("sports.txt");
-        Files.write(file2, List.of("Football is a great sport", "I enjoy running marathons"));
-
-        // use a fake model to control the math
-        // This fake model makes vectors based on length so we can predict results
-        EmbeddingModel fakeModel = new LengthBasedEmbeddingModel();
-
-        // 3. Execute: Call the actual private methods via a testable wrapper
-        String query = "Baking";
-
-        // We use the file fetching logic we wrote in the main class
-        List<String> lines = TextSimilarityRanker.fetchUniqueLinesFromDirectory(tempDir.toString());
-
-        //Verification: Check file reading logic
-        assertThat(lines).hasSize(4);
-        assertThat(lines).contains("I love baking bread", "Cooking is my passion");
-
-        // Execute similarity mapping
-        Map<String, Double> results = TextSimilarityRanker.mapSimilaritiesByRelevance(fakeModel, query, lines);
-
-        // 6. Verification: Check ranking
-        // "I love baking bread" should exist in the results
-        assertThat(results).containsKey("I love baking bread");
-
-        // Ensure scores are within expected cosine range [-1, 1]
-        results.values().forEach(score -> {
-            assertThat(score).isBetween(-1.0, 1.0);
-        });
-    }
-
-    @Test
-    @DisplayName("Should handle empty directory gracefully")
-    void shouldHandleEmptyDirectory() {
-        List<String> lines = TextSimilarityRanker.fetchUniqueLinesFromDirectory(tempDir.toString());
-        assertThat(lines).isEmpty();
-    }
-
     /**
-     * A controlled model for integration testing.
-     * It produces a vector based on text length so we can verify the ranking logic
-     * without needing a random LLM response.
+     * Mock Model that generates embeddings based on string length for predictable testing.
      */
     private static class LengthBasedEmbeddingModel implements EmbeddingModel {
         @Override
         public Response<Embedding> embed(String text) {
-            return Response.from(Embedding.from(new float[]{text.length(), 1.0f}));
+            return Response.from(Embedding.from(new float[]{(float) text.length(), 1.0f}));
         }
 
         @Override
         public Response<List<Embedding>> embedAll(List<TextSegment> segments) {
-            List<Embedding> embeddings = segments.stream()
-                    .map(s -> Embedding.from(new float[]{s.text().length(), 1.0f}))
-                    .toList();
-            return Response.from(embeddings);
+            return Response.from(segments.stream()
+                    .map(s -> Embedding.from(new float[]{(float) s.text().length(), 1.0f}))
+                    .toList());
         }
+    }
+
+    @Test
+    @DisplayName("Should handle multiple formats (TXT, MD) and rank them")
+    void shouldHandleMultipleFormats() throws IOException {
+        Files.write(tempDir.resolve("test1.txt"), List.of("Standard text content"));
+        Files.write(tempDir.resolve("test2.md"), List.of("# Markdown Title"));
+
+        List<TextSegment> segments = TextSimilarityRanker.fetchUniqueTextSegmentsFromDirectory(tempDir.toAbsolutePath().toString());
+
+        assertThat(segments).isNotEmpty();
+
+        // Extract the text part for assertions
+        assertThat(segments).extracting(TextSegment::text)
+                .anyMatch(s -> s.toLowerCase().contains("standard"))
+                .anyMatch(s -> s.toLowerCase().contains("markdown"));
+    }
+
+    @Test
+    @DisplayName("Should handle CSV and JSON formats correctly")
+    void shouldHandleStructuredData() throws Exception {
+        Files.write(tempDir.resolve("data.csv"), List.of("name,desc", "Tomato,Fruit"));
+        Files.write(tempDir.resolve("data.json"), List.of("{\"item\": \"Pasta\"}"));
+
+        List<TextSegment> segments = TextSimilarityRanker.fetchUniqueTextSegmentsFromDirectory(tempDir.toAbsolutePath().toString());
+
+        assertThat(segments).isNotEmpty();
+
+        List<String> textContent = segments.stream().map(TextSegment::text).toList();
+        assertThat(textContent).anyMatch(l -> l.contains("Tomato"));
+        assertThat(textContent).anyMatch(l -> l.contains("Pasta"));
+
+        EmbeddingModel fakeModel = new LengthBasedEmbeddingModel();
+        Map<TextSegment, Double> results = TextSimilarityRanker.rankSegments(fakeModel, "Pasta", segments);
+
+        boolean foundPastaInResults = results.keySet().stream()
+                .anyMatch(segment -> segment.text().contains("Pasta"));
+
+        assertThat(foundPastaInResults).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should extract and clean Markdown content")
+    void shouldHandleMarkdownCleaning() throws IOException {
+        Path mdFile = tempDir.resolve("guide.md");
+        Files.writeString(mdFile, "### Header\nThis is **bold** and [a link](http://test.com).");
+
+        List<TextSegment> segments = TextSimilarityRanker.fetchUniqueTextSegmentsFromDirectory(tempDir.toString());
+
+        assertThat(segments).isNotEmpty();
+
+        // Flatten all chunks from this file into one string for easier validation
+        String fullCleanedText = segments.stream()
+                .map(TextSegment::text)
+                .collect(Collectors.joining(" "));
+
+        // Verify syntax is stripped
+        assertThat(fullCleanedText).doesNotContain("###", "**", "http://test.com");
+
+        // Verify core content is preserved
+        assertThat(fullCleanedText).contains("Header", "bold", "a link");
+
+        // Verify metadata is correctly mapped to the segments
+        assertThat(segments.get(0).metadata().getString("file_name")).isEqualTo("guide.md");
+    }
+
+    @Test
+    @DisplayName("Should process mixed formats and rank them correctly")
+    void shouldHandleMixedFormatsAndRanking() throws IOException {
+        Files.writeString(tempDir.resolve("info.txt"), "Standard plain text here.");
+        Files.writeString(tempDir.resolve("data.json"), "{\"note\": \"Searchable pasta recipe\"}");
+
+        List<TextSegment> segments = TextSimilarityRanker.fetchUniqueTextSegmentsFromDirectory(tempDir.toString());
+
+        assertThat(segments).hasSizeGreaterThanOrEqualTo(2);
+
+        // Verification of Metadata across different readers
+        assertThat(segments).extracting(s -> s.metadata().getString("file_name"))
+                .contains("info.txt", "data.json");
+
+        EmbeddingModel mockModel = new LengthBasedEmbeddingModel();
+        Map<TextSegment, Double> rankings = TextSimilarityRanker.rankSegments(mockModel, "pasta", segments);
+
+        boolean foundJsonContent = rankings.keySet().stream()
+                .anyMatch(s -> s.text().contains("pasta"));
+
+        assertThat(foundJsonContent).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should return empty list for empty directory")
+    void handleEmptyDirectory() {
+        List<TextSegment> segments = TextSimilarityRanker.fetchUniqueTextSegmentsFromDirectory(tempDir.toString());
+        assertThat(segments).isEmpty();
     }
 }

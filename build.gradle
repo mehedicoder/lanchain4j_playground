@@ -22,10 +22,21 @@ dependencies {
     implementation "dev.langchain4j:langchain4j-mistral-ai:${lc4jVersion}"
     implementation 'dev.langchain4j:langchain4j-ollama:0.33.0'
 
+    implementation 'org.apache.pdfbox:pdfbox:3.0.1'     // For PDF
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'    // For Word (.docx)
+
+    implementation 'com.opencsv:opencsv:5.9'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+
+    implementation 'org.commonmark:commonmark:0.27.1'
+
+
+
     implementation("dev.langchain4j:langchain4j-document-parser-apache-pdfbox:1.4.0-beta10") // PDF → text
 
-    implementation 'org.slf4j:slf4j-nop:2.0.17'
+    //implementation 'org.slf4j:slf4j-nop:2.0.17'
     //implementation 'ch.qos.logback:logback-classic:1.4.14'
+    implementation 'ch.qos.logback:logback-classic:1.5.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
